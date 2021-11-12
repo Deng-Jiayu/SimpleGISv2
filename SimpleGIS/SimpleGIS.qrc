@@ -1,0 +1,19 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/放大.svg</file>
+        <file>icons/缩小.svg</file>
+        <file>icons/文件.svg</file>
+        <file>icons/文件夹.svg</file>
+        <file>icons/选择.svg</file>
+        <file>icons/移动.svg</file>
+        <file>icons/复位.svg</file>
+        <file>icons/缩放.svg</file>
+        <file>icons/鹰眼.svg</file>
+        <file>icons/创建文件夹.svg</file>
+        <file>icons/图层管理.svg</file>
+        <file>icons/目录.svg</file>
+        <file>icons/属性.svg</file>
+        <file>GPS50W.txt</file>
+        <file>icons/保存.svg</file>
+    </qresource>
+</RCC>
