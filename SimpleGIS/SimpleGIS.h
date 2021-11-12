@@ -24,6 +24,7 @@ public:
 
 public slots:
 	void addVectorLayer();			// 添加矢量图层
+	void addRasterFile();
 	void ZoomIn();					// 放大
 	void ZoomOut();					// 缩小
 	void Pan();						// 移动
@@ -33,6 +34,8 @@ public slots:
 	void ZoomToFeature();
 	void OpenOverView();
 	void CreateDoc();
+	void SaveDoc();
+	void SaveAsDoc();
 	void OpenDoc();
 	void LayerManage();
 	void Catalog();
@@ -53,6 +56,9 @@ private:
 
 	QgsMapCanvas* mapCanvas;
 	QgsProject* mapProject;
+
+	QString currentFileName = NULL;
+	int status = 1;	// 1、初始mapProject为空状态，2、被修改为保存，3、已保存
 
 	QgsAttributeTableView* m_tv;
 	QgsAttributeTableFilterModel* m_tfm = NULL;

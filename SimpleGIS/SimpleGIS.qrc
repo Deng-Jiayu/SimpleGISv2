@@ -15,5 +15,7 @@
         <file>icons/属性.svg</file>
         <file>GPS50W.txt</file>
         <file>icons/保存.svg</file>
+        <file>icons/另存为.svg</file>
+        <file>icons/栅格.svg</file>
     </qresource>
 </RCC>

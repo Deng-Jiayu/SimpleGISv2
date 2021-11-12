@@ -11,11 +11,16 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 	ui.setupUi(this);
 
 	mapCanvas = new QgsMapCanvas;
+
+	mapProject = QgsProject::instance();
+
 	setCentralWidget(mapCanvas);
 
 	QMenu* m = new QMenu(QStringLiteral("基础功能"));
 	QAction* addVector = m->addAction(QStringLiteral("添加矢量数据"), this, &SimpleGIS::addVectorLayer);
 	addVector->setIcon(QIcon(QStringLiteral(":/icons/文件.svg")));
+	QAction* addRasterFile = m->addAction(QStringLiteral("添加栅格数据"), this, &SimpleGIS::addRasterFile);
+	addRasterFile->setIcon(QIcon(QStringLiteral(":/icons/栅格.svg")));
 	QAction* zoomIn = m->addAction(QStringLiteral("放大"), this, &SimpleGIS::ZoomIn);
 	zoomIn->setIcon(QIcon(QStringLiteral(":/icons/放大.svg")));
 	QAction* zoomOut = m->addAction(QStringLiteral("缩小"), this, &SimpleGIS::ZoomOut);
@@ -33,8 +38,12 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 
 	m->addSeparator();
 
-	QAction* createDoc = m->addAction(QStringLiteral("保存文档"), this, &SimpleGIS::CreateDoc);
-	createDoc->setIcon(QIcon(QStringLiteral(":/icons/保存.svg")));
+	QAction* createDoc = m->addAction(QStringLiteral("创建文档"), this, &SimpleGIS::CreateDoc);
+	createDoc->setIcon(QIcon(QStringLiteral(":/icons/创建文件夹.svg")));
+	QAction* saveDoc = m->addAction(QStringLiteral("保存文档"), this, &SimpleGIS::SaveDoc);
+	saveDoc->setIcon(QIcon(QStringLiteral(":/icons/保存.svg")));
+	QAction* saveAsDoc = m->addAction(QStringLiteral("另存文档"), this, &SimpleGIS::SaveAsDoc);
+	saveAsDoc->setIcon(QIcon(QStringLiteral(":/icons/另存为.svg")));
 	QAction* openDoc = m->addAction(QStringLiteral("打开文档"), this, &SimpleGIS::OpenDoc);
 	openDoc->setIcon(QIcon(QStringLiteral(":/icons/文件夹.svg")));
 	QAction* layerManage = m->addAction(QStringLiteral("图层管理"), this, &SimpleGIS::LayerManage);
@@ -43,18 +52,30 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 
 	ui.menuBar->addMenu(m);
 
-	ui.mainToolBar->addAction(openDoc);
+
 	ui.mainToolBar->addAction(createDoc);
+	ui.mainToolBar->addAction(openDoc);
+	ui.mainToolBar->addAction(saveDoc);
+	ui.mainToolBar->addAction(saveAsDoc);
+	ui.mainToolBar->addSeparator();
+
 	ui.mainToolBar->addAction(addVector);
+	ui.mainToolBar->addAction(addRasterFile);
+	ui.mainToolBar->addSeparator();
+
 	ui.mainToolBar->addAction(zoomIn);
 	ui.mainToolBar->addAction(zoomOut);
 	ui.mainToolBar->addAction(pan);
 	ui.mainToolBar->addAction(fullExtent);
+	ui.mainToolBar->addSeparator();
+
 	ui.mainToolBar->addAction(identify);
 	ui.mainToolBar->addAction(zoomToFeature);
+	ui.mainToolBar->addSeparator();
+
 	ui.mainToolBar->addAction(openOverView);
 	ui.mainToolBar->addAction(layerManage);
-
+	ui.mainToolBar->addSeparator();
 
 	m = new QMenu(QStringLiteral("空间数据管理"));
 
@@ -106,7 +127,48 @@ void SimpleGIS::addVectorLayer()
 
 		mapCanvas->setVisible(true);
 		mapCanvas->refresh();
+
+		mapProject->addMapLayers(mapCanvas->layers());
 	}
+	this->status = 2;
+}
+
+#include <QMessageBox>
+#include <QgsRasterLayer.h>
+void SimpleGIS::addRasterFile()
+{
+	// 获取文件名称
+	QString filename = QFileDialog::getOpenFileName(this, tr("Open File"), "", "Raster File(*.tif)", 0);
+	if (filename.isEmpty())
+	{
+		QMessageBox::critical(this, QStringLiteral("警告"), QStringLiteral("文件名称为空")); return;
+	}
+	// 获取栅格图层
+	QgsRasterLayer* my_rasterlayer = nullptr;
+	QStringList temp = filename.split(QDir::separator());
+	QString basename = temp.at(temp.size() - 1);
+	QString provideKey = "";
+	if (provideKey.isEmpty())
+	{
+		my_rasterlayer = new QgsRasterLayer(filename, basename);
+	}
+	else
+	{
+		my_rasterlayer = new QgsRasterLayer(filename, basename, provideKey);
+	}
+	if (!my_rasterlayer->isValid())
+	{
+		QMessageBox::critical(this, QStringLiteral("警告"), QStringLiteral("栅格图层无效")); return;
+	}
+	// 显示影像
+	//my_rasterlayer->setCrs(QgsCoordinateReferenceSystem("EPSG::32649") );
+	mapCanvas->setLayers(mapCanvas->layers() << my_rasterlayer);
+	mapCanvas->zoomToFullExtent();
+	mapCanvas->refresh();
+
+	mapProject->addMapLayers(mapCanvas->layers());
+
+	this->status = 2;
 }
 
 void SimpleGIS::ZoomIn()
@@ -214,14 +276,59 @@ void SimpleGIS::OpenOverView()
 
 void SimpleGIS::CreateDoc()
 {
-	//mapProject = new QgsProject;
-	mapProject = QgsProject::instance();
-	//mapProject->addMapLayer(mapCanvas->currentLayer());
+	if (this->status == 2) {
+
+		QMessageBox box;
+		box.setWindowTitle(QStringLiteral("警告"));
+		box.setText(QStringLiteral("当前文档尚未保存，是否保存"));
+		QPushButton* yesBtn = box.addButton(QStringLiteral("是(&Y)"), QMessageBox::YesRole);
+		QPushButton* noBtn = box.addButton(QStringLiteral("否(&N)"), QMessageBox::NoRole);
+		QPushButton* cancleBtn = box.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);
+		box.exec();
+
+		if (box.clickedButton() == yesBtn) {
+			QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "", QStringLiteral("地图文档(*.qgs)"), 0);
+			this->currentFileName = fileName;
+			mapProject->write(currentFileName);
+		}
+		else if (box.clickedButton() == cancleBtn) {
+			return;
+		}
+	}
+
 	mapProject->clear();
+	mapProject->addMapLayers(mapCanvas->layers());
+	this->status = 1;
+}
+
+void SimpleGIS::SaveDoc()
+{
+	//mapProject = new QgsProject;
+	//mapProject->addMapLayer(mapCanvas->currentLayer());
 
 	mapProject->addMapLayers(mapCanvas->layers());
-	mapProject->write("test.qgs");
+	if (currentFileName == NULL) {
+		QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "", QStringLiteral("地图文档(*.qgs)"), 0);
+		this->currentFileName = fileName;
+		mapProject->write(currentFileName);
+	}
+	else {
+		mapProject->write(currentFileName);
+	}
+	this->status = 3;
+}
 
+void SimpleGIS::SaveAsDoc()
+{
+	//mapProject = new QgsProject;
+	//mapProject->addMapLayer(mapCanvas->currentLayer());
+
+	mapProject->addMapLayers(mapCanvas->layers());
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "", QStringLiteral("地图文档(*.qgs)"), 0);
+	this->currentFileName = fileName;
+	mapProject->write(currentFileName);
+
+	this->status = 3;
 }
 
 #include <QgsLayerTree.h>
@@ -273,7 +380,7 @@ private:
 #include <QgsCustomLayerOrderWidget.h>
 void SimpleGIS::LayerManage()
 {
-	QgsLayerTreeMapCanvasBridge* bridge = new QgsLayerTreeMapCanvasBridge(QgsProject::instance()->layerTreeRoot(), mapCanvas);
+	QgsLayerTreeMapCanvasBridge* bridge = new QgsLayerTreeMapCanvasBridge(mapProject->layerTreeRoot(), mapCanvas);
 
 	QgsCustomLayerOrderWidget* view = new QgsCustomLayerOrderWidget(bridge);
 
