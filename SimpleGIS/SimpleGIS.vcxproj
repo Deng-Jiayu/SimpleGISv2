@@ -57,7 +57,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <IncludePath>$(SolutionDir)SimpleGIS\attributetable;C:\Program Files\QGIS 3.16\apps\Qt5\include;D:\qgis-ltr\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files\QGIS 3.16\apps\Qt5\include;D:\qgis-ltr\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\qgis-ltr\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

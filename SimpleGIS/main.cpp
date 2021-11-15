@@ -10,6 +10,7 @@ int main(int argc, char* argv[])
 	QgsApplication::initQgis();
 
 	SimpleGIS w;
+	w.showMaximized();
 	w.show();
 	return a.exec();
 }

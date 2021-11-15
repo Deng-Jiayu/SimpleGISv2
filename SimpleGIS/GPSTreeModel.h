@@ -12,6 +12,14 @@ struct GPSPoint
 	float x, y;
 	unsigned char flag;
 	unsigned char h, m, s;
+	double maxV = 0;
+	double averageV = 0;
+};
+
+struct velocity {
+	long carId;
+	double maxV = 0;
+	double averageV = 0;
 };
 
 class TreeItem;

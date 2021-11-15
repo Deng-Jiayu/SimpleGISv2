@@ -139,9 +139,16 @@ void CountSubItems(TreeItem* root, long maxi)
 	CountSubItems(root->child(root->childCount() - 1), maxi);
 }
 
+int deltaTime(GPSPoint& p1, GPSPoint& p2)
+{
+	return p2.h * 3600 + p2.m * 60 + p2.s - (p1.h * 3600 + p1.m * 60 + p1.s);
+}
+
+QVector<velocity> mVelocity;
+
 void GPSTreeModel::setupModelData(const QString& fname)
 {
-	rootItem = new TreeItem({ QStringLiteral("分类"),QStringLiteral("开始位置"), QStringLiteral("要素数") });
+	rootItem = new TreeItem({ QStringLiteral("分类"),QStringLiteral("开始位置"),QStringLiteral("平均速度"),QStringLiteral("最高速度"), QStringLiteral("要素数") });
 
 	GPSPoint p;
 	QFile file(fname);
@@ -166,43 +173,101 @@ void GPSTreeModel::setupModelData(const QString& fname)
 
 	qSort(mData.begin(), mData.end(), GPSPointLessThan);
 
+	long  carId;
+	// 每一个点的总距离，时间
+	double totalDistance = 0;
+	int totalTime = 0;
+	double maxV = 0;
+	velocity v;
+
+	for (QVector<GPSPoint>::iterator it = mData.begin(); it != mData.end(); it++)
+	{
+
+
+		QgsPointXY p(it->x, it->y);
+		carId = it->carId;
+		if (it->carId == (it + 1)->carId && (it + 1) != mData.end() - 1) {
+			QgsPointXY c((it + 1)->x, (it + 1)->y);
+			int dt = deltaTime(*it, *(it + 1));
+
+			if (dt != 0) {
+				double v = c.distance(p) / dt * 111000;
+				if (v > maxV) {
+					maxV = v;								// 更新最大速度
+				}
+				totalDistance += c.distance(p);				// 总路程
+				totalTime += dt;							// 总时间
+			}
+
+		}
+		else											// 遇见新点
+		{
+			double averageV = totalDistance / totalTime * 111000;
+			v.carId = carId;
+			v.maxV = maxV;
+			v.averageV = averageV;
+			mVelocity.push_back(v);							// 将速度加入到数组中
+
+			// 新点总距离，时间重置
+			totalDistance = 0;
+			totalTime = 0;
+			maxV = 0;
+		}
+	}
+
+	QVector<velocity>::Iterator vIt = mVelocity.begin();
+	for (QVector<GPSPoint>::iterator it = mData.begin(); it != mData.end(), vIt != mVelocity.end(); )
+	{
+		while (vIt->carId == it->carId) {
+			it->maxV = vIt->maxV;
+			it->averageV = vIt->averageV;
+			it++;
+		}
+		vIt++;
+	}
+
+
 	TreeItem* car = NULL, * Hour = NULL, * Minute = NULL;
-	long  carId, HourId, MinuteId, i = 0;
+	long   HourId, MinuteId, i = 0;
+	// 遍历每一个点
 	for (QVector<GPSPoint>::iterator it = mData.begin(); it != mData.end(); it++, i++)
 	{
 		QVector<QVariant> columnData;
 		if (car == NULL || carId != it->carId)
 		{
-			columnData << it->carId << i; carId = it->carId;
+			columnData << it->carId << i << (it)->averageV << (it)->maxV; carId = it->carId;
 			car = new TreeItem(columnData, rootItem);
 			rootItem->appendChild(car);
 
-			columnData.clear(); HourId = long(it->h);
-			columnData << HourId << i;
+			columnData.clear();
+			HourId = long(it->h);
+			columnData << HourId << i << (it)->averageV << (it)->maxV;
 			Hour = new TreeItem(columnData, car);
 			car->appendChild(Hour);
 
-			columnData.clear(); MinuteId = long(it->m / 5 * 5);
-			columnData << MinuteId << i;
+			columnData.clear();
+			MinuteId = long(it->m / 5 * 5);
+			columnData << MinuteId << i << (it)->averageV << (it)->maxV;
 			Minute = new TreeItem(columnData, Hour);
 			Hour->appendChild(Minute);
 		}
 		else if (HourId != long(it->h))
 		{
 			HourId = long(it->h);
-			columnData << HourId << i;
+			columnData << HourId << i << it->averageV << it->maxV;
 			Hour = new TreeItem(columnData, car);
 			car->appendChild(Hour);
 
-			columnData.clear(); MinuteId = long(it->m / 5 * 5);
-			columnData << MinuteId << i;
+			columnData.clear();
+			MinuteId = long(it->m / 5 * 5);
+			columnData << MinuteId << i << it->averageV << it->maxV;
 			Minute = new TreeItem(columnData, Hour);
 			Hour->appendChild(Minute);
 		}
 		else if (MinuteId != long(it->m / 5 * 5))
 		{
 			MinuteId = long(it->m / 5 * 5);
-			columnData << MinuteId << i;
+			columnData << MinuteId << i << it->averageV << it->maxV;
 			Minute = new TreeItem(columnData, Hour);
 			Hour->appendChild(Minute);
 		}
@@ -211,10 +276,6 @@ void GPSTreeModel::setupModelData(const QString& fname)
 	CountSubItems(rootItem, mData.size());
 }
 
-int deltaTime(GPSPoint& p1, GPSPoint& p2)
-{
-	return p2.h * 3600 + p2.m * 60 + p2.s - (p1.h * 3600 + p1.m * 60 + p1.s);
-}
 #include <QMessageBox>
 QgsFeatureList GPSTreeModel::GetFeatures(QModelIndex& index)
 {
@@ -222,11 +283,11 @@ QgsFeatureList GPSTreeModel::GetFeatures(QModelIndex& index)
 
 	TreeItem* childItem = static_cast<TreeItem*>(index.internalPointer());
 	int from = childItem->data(1).toInt();
-	int num = childItem->data(2).toInt();
+	int num = childItem->data(4).toInt();
 
 	// 创建点
 	QgsFeature MyFeature;
-	MyFeature.initAttributes(2);
+	MyFeature.initAttributes(7);
 
 	QgsPointXY p(mData[from].x, mData[from].y);
 	for (int i = 1; i < num; i++)
@@ -238,9 +299,14 @@ QgsFeatureList GPSTreeModel::GetFeatures(QModelIndex& index)
 		if (dt == 0) continue;
 		MyFeature.setGeometry(QgsGeometry::fromPointXY(c));
 		MyFeature.setAttribute(0, QVariant(i));
-		double v = c.distance(p) / dt;
+		// 瞬时速度
+		double v = c.distance(p) / dt * 111000;		// 将经纬度计算所得速度转换为m/s
 		MyFeature.setAttribute(1, QVariant(v));
 		MyFeature.setAttribute(2, QVariant(QString("%1:%2:%3").arg(mData[idx].h, 2, 10, QLatin1Char('0')).arg(mData[idx].m, 2, 10, QLatin1Char('0')).arg(mData[idx].s, 2, 10, QLatin1Char('0'))));
+		MyFeature.setAttribute(3, QVariant(mData[idx].maxV));
+		MyFeature.setAttribute(4, QVariant(mData[idx].averageV));
+		MyFeature.setAttribute(5, QVariant(mData[idx].x));
+		MyFeature.setAttribute(6, QVariant(mData[idx].y));
 		p = c;
 		ret << MyFeature;
 	}
@@ -253,11 +319,11 @@ QgsFeatureList GPSTreeModel::GetLineFeatures(QModelIndex& index)
 
 	TreeItem* childItem = static_cast<TreeItem*>(index.internalPointer());
 	int from = childItem->data(1).toInt();
-	int num = childItem->data(2).toInt();
+	int num = childItem->data(4).toInt();
 
 	// 创建点
 	QgsFeature MyFeature;
-	MyFeature.initAttributes(2);
+	MyFeature.initAttributes(7);
 	QgsPointXY p(mData[from].x, mData[from].y);
 	for (int i = 1; i < num; i++)
 	{
@@ -269,9 +335,13 @@ QgsFeatureList GPSTreeModel::GetLineFeatures(QModelIndex& index)
 		if (dt == 0) continue;
 		MyFeature.setGeometry(QgsGeometry::fromPolylineXY(QgsPolylineXY() << p << c));
 		MyFeature.setAttribute(0, QVariant(i));
-		double v = c.distance(p) / dt;
+		double v = c.distance(p) / dt * 111000;
 		MyFeature.setAttribute(1, QVariant(v));
 		MyFeature.setAttribute(2, QVariant(QString("%1:%2:%3").arg(mData[idx].h, 2, 10, QLatin1Char('0')).arg(mData[idx].m, 2, 10, QLatin1Char('0')).arg(mData[idx].s, 2, 10, QLatin1Char('0'))));
+		MyFeature.setAttribute(3, QVariant(mData[idx].maxV));
+		MyFeature.setAttribute(4, QVariant(mData[idx].averageV));
+		MyFeature.setAttribute(5, QVariant(mData[idx].x));
+		MyFeature.setAttribute(6, QVariant(mData[idx].y));
 		p = c;
 		ret << MyFeature;
 	}

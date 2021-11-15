@@ -43,11 +43,20 @@ public slots:
 	void AttShowQGIS();
 	void AttShowMy();
 
+	void SpaQuery();
+	void SpaPolygonQuery();
+	void SpaFreeHandQuery();
+	void SpaSimpleQuery();
+
 	void LoadGPSData();
 	void GPSCatalog();
 	void TreeViewMenu(const QPoint& p);
 	void RequestGPS();
 	void ShowVelocity();
+
+
+	void FeatureEdit();
+	void AddFeature(const QgsFeature& f);
 
 	void Help();
 

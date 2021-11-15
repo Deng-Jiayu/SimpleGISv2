@@ -86,21 +86,38 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 	QAction* attShowMy = m->addAction(QStringLiteral("图层属性My"), this, &SimpleGIS::AttShowMy);
 	attShowMy->setIcon(QIcon(QStringLiteral(":/icons/属性.svg")));
 
+	m->addSeparator();
+	QAction* spaQuery = m->addAction(QStringLiteral("空间查询-点"), this, &SimpleGIS::SpaQuery);
+	spaQuery->setIcon(QIcon(QStringLiteral(":/icons/空间查询点.svg")));
+	QAction* spaPolygonQuery = m->addAction(QStringLiteral("空间查询-多边形"), this, &SimpleGIS::SpaPolygonQuery);
+	spaPolygonQuery->setIcon(QIcon(QStringLiteral(":/icons/空间查询多边形.svg")));
+	QAction* spaFreeHandQuery = m->addAction(QStringLiteral("空间查询-手绘"), this, &SimpleGIS::SpaFreeHandQuery);
+	spaFreeHandQuery->setIcon(QIcon(QStringLiteral(":/icons/空间查询手绘.svg")));
+	QAction* spaSimpleQuery = m->addAction(QStringLiteral("空间查询-矩形"), this, &SimpleGIS::SpaSimpleQuery);
+	spaSimpleQuery->setIcon(QIcon(QStringLiteral(":/icons/空间查询矩形.svg")));
+
 	ui.menuBar->addMenu(m);
 
 	ui.mainToolBar->addAction(catalog);
 	ui.mainToolBar->addAction(attShowMy);
+	ui.mainToolBar->addSeparator();
+	ui.mainToolBar->addAction(spaPolygonQuery);
+	ui.mainToolBar->addAction(spaSimpleQuery);
+
+
+	m = new QMenu(QStringLiteral("地图制图"));
+	m->addAction(QStringLiteral("添加要素"), this, &SimpleGIS::FeatureEdit);
+	ui.menuBar->addMenu(m);
 
 
 	m = new QMenu(QStringLiteral("GPS"));
 	m->addAction(QStringLiteral("加载数据"), this, &SimpleGIS::LoadGPSData);
 	m->addAction(QStringLiteral("GPS数据目录"), this, &SimpleGIS::GPSCatalog);
-
 	ui.menuBar->addMenu(m);
+
 
 	m = new QMenu(QStringLiteral("帮助"));
 	m->addAction(QStringLiteral("查看帮助"), this, &SimpleGIS::Help);
-
 	ui.menuBar->addMenu(m);
 
 }
@@ -517,6 +534,50 @@ void SimpleGIS::AttShowMy()
 	addDockWidget(Qt::BottomDockWidgetArea, overView);
 }
 
+#include "qgsmaptoolselect.h"
+void SimpleGIS::SpaQuery()
+{
+	QgsMapToolSelect* tool = new QgsMapToolSelect(mapCanvas);
+	mapCanvas->setCurrentLayer(mapCanvas->layers()[0]);
+	mapCanvas->setMapTool(tool);
+
+	if (m_tfm)
+		m_tfm->setFilterMode(QgsAttributeTableFilterModel::ShowSelected);
+}
+
+void SimpleGIS::SpaPolygonQuery()
+{
+	QgsMapToolSelect* tool = new QgsMapToolSelect(mapCanvas);
+	tool->setSelectionMode(QgsMapToolSelectionHandler::SelectPolygon);
+	mapCanvas->setCurrentLayer(mapCanvas->layers()[0]);
+	mapCanvas->setMapTool(tool);
+
+	if (m_tfm)
+		m_tfm->setFilterMode(QgsAttributeTableFilterModel::ShowSelected);
+}
+
+void SimpleGIS::SpaFreeHandQuery()
+{
+	QgsMapToolSelect* tool = new QgsMapToolSelect(mapCanvas);
+	tool->setSelectionMode(QgsMapToolSelectionHandler::SelectFreehand);
+	mapCanvas->setCurrentLayer(mapCanvas->layers()[0]);
+	mapCanvas->setMapTool(tool);
+
+	if (m_tfm)
+		m_tfm->setFilterMode(QgsAttributeTableFilterModel::ShowSelected);
+}
+
+void SimpleGIS::SpaSimpleQuery()
+{
+	QgsMapToolSelect* tool = new QgsMapToolSelect(mapCanvas);
+	tool->setSelectionMode(QgsMapToolSelectionHandler::SelectSimple);
+	mapCanvas->setCurrentLayer(mapCanvas->layers()[0]);
+	mapCanvas->setMapTool(tool);
+
+	if (m_tfm)
+		m_tfm->setFilterMode(QgsAttributeTableFilterModel::ShowSelected);
+}
+
 void SimpleGIS::LoadGPSData()
 {
 	QgsVectorLayer* vecLayer = new QgsVectorLayer("file:///C:/code/VS2019/SimpleGIS/SimpleGIS/GPS50W.txt?type=csv&useHeader=No&maxFields=10000&detectTypes=yes&xField=field_3&yField=field_2&crs=EPSG:4326&spatialIndex=no&subsetIndex=no&watchFile=no", "test", "delimitedtext");
@@ -580,6 +641,7 @@ void SimpleGIS::RequestGPS()
 	QString layerProperties = "point?";    // 几何类型
 	layerProperties.append(QString("crs=EPSG:4326&"));    // 参照坐标系
 	layerProperties.append(QString("field=id:integer&field=velocity:double(10,6)&field=ptime:string(20)&"));    // 添加字段
+	layerProperties.append(QString("field=maxVelocity:double(10,6)&field=averageVelocity:double(10,6)&field=x:double(20)&field=y:double(20)&"));    // 添加字段
 	layerProperties.append(QString("index=yes&"));        // 创建索引
 	layerProperties.append(QString("memoryid=%1").arg(QUuid::createUuid().toString()));
 
@@ -620,6 +682,7 @@ void SimpleGIS::ShowVelocity()
 	QString layerProperties = "linestring?";    // 几何类型
 	layerProperties.append(QString("crs=EPSG:4326&"));    // 参照坐标系
 	layerProperties.append(QString("field=id:integer&field=velocity:double(10,4)&field=ptime:string(20)&"));    // 添加字段
+	layerProperties.append(QString("field=maxVelocity:double(10,6)&field=averageVelocity:double(10,6)&field=x:double(20)&field=y:double(20)&"));    // 添加字段
 	layerProperties.append(QString("index=yes&"));        // 创建索引
 	layerProperties.append(QString("memoryid=%1").arg(QUuid::createUuid().toString()));
 
@@ -661,6 +724,33 @@ void SimpleGIS::ShowVelocity()
 
 	newLayer->triggerRepaint();
 	mapCanvas->zoomToFullExtent();
+}
+
+#include <QgsMapToolDigitizeFeature.h>
+#include <QgsAdvancedDigitizingDockWidget.h>
+void SimpleGIS::FeatureEdit()
+{
+	QgsAdvancedDigitizingDockWidget* cadDockWidget = new QgsAdvancedDigitizingDockWidget(mapCanvas);
+	QgsMapToolDigitizeFeature* tool = new QgsMapToolDigitizeFeature(mapCanvas, cadDockWidget, QgsMapToolCapture::CapturePolygon);
+
+	QgsMapLayer* layer = mapCanvas->layers()[0];
+	if (!layer->isEditable())
+		((QgsVectorLayer*)layer)->startEditing();
+	connect(tool, &QgsMapToolDigitizeFeature::digitizingCompleted, this, &SimpleGIS::AddFeature);
+	tool->setLayer(layer);
+	mapCanvas->setMapTool(tool);
+
+	addDockWidget(Qt::LeftDockWidgetArea, cadDockWidget);
+}
+
+void SimpleGIS::AddFeature(const QgsFeature& f)
+{
+	QgsVectorLayer* layer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+	layer->beginEditCommand("Add feature");
+	layer->addFeature(QgsFeature(f));
+	layer->triggerRepaint();
+	layer->endEditCommand();
+	//layer->commitChanges(false);
 }
 
 #include <QDesktopServices.h>

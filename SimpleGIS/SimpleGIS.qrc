@@ -17,5 +17,9 @@
         <file>icons/保存.svg</file>
         <file>icons/另存为.svg</file>
         <file>icons/栅格.svg</file>
+        <file>icons/空间查询点.svg</file>
+        <file>icons/空间查询多边形.svg</file>
+        <file>icons/空间查询手绘.svg</file>
+        <file>icons/空间查询矩形.svg</file>
     </qresource>
 </RCC>
