@@ -57,7 +57,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <IncludePath>C:\Program Files\QGIS 3.16\apps\Qt5\include;D:\qgis-ltr\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\QQfile\qgis-latest-ltr.tar\qgis-latest-ltr\qgis-3.16.10\src\core;C:\Program Files\QGIS 3.16\include;C:\Program Files\QGIS 3.16\apps\Qt5\include;D:\qgis-ltr\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\qgis-ltr\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -92,9 +92,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DiagramDialog.cpp" />
+    <ClCompile Include="GraduatedSymbolDialog.cpp" />
+    <ClCompile Include="SimpleAnnDialog.cpp" />
     <ClCompile Include="treeitem.cpp" />
     <QtRcc Include="SimpleGIS.qrc" />
     <QtUic Include="AttQuery.ui" />
+    <QtUic Include="DiagramDialog.ui" />
+    <QtUic Include="GraduatedSymbolDialog.ui" />
     <QtUic Include="qgsattributetabledialog.ui" />
     <QtUic Include="qgsbrowserdirectorypropertiesbase.ui" />
     <QtUic Include="qgsbrowserdockwidgetbase.ui" />
@@ -102,6 +107,11 @@
     <QtUic Include="qgsbrowserpropertiesdialogbase.ui" />
     <QtUic Include="qgsdualviewbase.ui" />
     <QtUic Include="qgsexpressionpreviewbase.ui" />
+    <QtUic Include="qgsmapunitscalewidgetbase.ui" />
+    <QtUic Include="qgsstyleitemslistwidgetbase.ui" />
+    <QtUic Include="qgstextformatwidgetbase.ui" />
+    <QtUic Include="qgsunitselectionwidget.ui" />
+    <QtUic Include="SimpleAnnDialog.ui" />
     <QtUic Include="SimpleGIS.ui" />
     <QtMoc Include="SimpleGIS.h" />
     <ClCompile Include="GPSTreeModel.cpp" />
@@ -110,8 +120,11 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="DiagramDialog.h" />
     <ClInclude Include="GPSTreeModel.h" />
+    <QtMoc Include="GraduatedSymbolDialog.h" />
     <ClInclude Include="MyAttTableView.h" />
+    <QtMoc Include="SimpleAnnDialog.h" />
     <ClInclude Include="treeitem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

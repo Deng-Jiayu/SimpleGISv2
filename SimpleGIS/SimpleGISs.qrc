@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/">
+    <qresource prefix="/fs">
         <file>icons/放大.svg</file>
         <file>icons/缩小.svg</file>
         <file>icons/文件.svg</file>
@@ -21,9 +21,5 @@
         <file>icons/空间查询多边形.svg</file>
         <file>icons/空间查询手绘.svg</file>
         <file>icons/空间查询矩形.svg</file>
-        <file>icons/github.svg</file>
-    </qresource>
-    <qresource prefix="/fa">
-        <file>GPS50W.txt</file>
     </qresource>
 </RCC>

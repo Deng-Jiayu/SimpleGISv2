@@ -14,6 +14,11 @@
 #include "GPSTreeModel.h"
 
 #include "ui_SimpleGIS.h"
+#include "SimpleAnnDialog.h"
+#include "GraduatedSymbolDialog.h"
+#include "DiagramDialog.h"
+
+class QgsDiagram;
 
 class SimpleGIS : public QMainWindow
 {
@@ -21,6 +26,7 @@ class SimpleGIS : public QMainWindow
 
 public:
 	SimpleGIS(QWidget* parent = Q_NULLPTR);
+	~SimpleGIS();
 
 public slots:
 	void addVectorLayer();			// 添加矢量图层
@@ -58,7 +64,35 @@ public slots:
 	void FeatureEdit();
 	void AddFeature(const QgsFeature& f);
 
+	void setSimpleAnnPara();
+	void SimpleAnn();
+	void AnnSetting();
+	void SingleSymbol();
+	void CategorizedSymbol();
+	void setGraduatedSymbolPara();
+	void GraduatedSymbol();
+
+
+	void setDiagramPara();
+	void PieDiagram();
+	void TextDiagram();
+	void HistogramDiagram();
+	void StackBarDiagram();
+	void PieDiagram2();
+	void TextDiagram2();
+	void HistogramDiagram2();
+	void StackBarDiagram2();
+
+
 	void Help();
+
+private:
+	void Diagram(QgsDiagram* diagram, bool isSingle);
+
+private slots:
+	void receiveData(QVector<QString>);
+	void receiveData2(QVector<QString>);
+	void receiveData3(QVector<QString>);
 
 private:
 	Ui::SimpleGISClass ui;
@@ -75,6 +109,15 @@ private:
 	QTreeView* m_treeView;
 	GPSTreeModel* m_treeModel;
 	QModelIndex m_index;
+
+public:
+
+	SimpleAnnDialog* m_SimpleAnnDialog;
+	QVector<QString> m_SimpleAnnPara;
+	GraduatedSymbolDialog* m_GraduatedSymbolDialog;
+	QVector<QString> m_GraduatedSymbolPara;
+	DiagramDialog* m_DiagramDialog;
+	QVector<QString> m_DiagramPara;
 };
 
 #include "ui_AttQuery.h"

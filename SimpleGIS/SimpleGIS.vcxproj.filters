@@ -49,6 +49,15 @@
     <ClCompile Include="treeitem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SimpleAnnDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GraduatedSymbolDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DiagramDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="qgsbrowserdockwidgetbase.ui">
@@ -75,6 +84,27 @@
     <QtUic Include="qgsexpressionpreviewbase.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="qgstextformatwidgetbase.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="qgsstyleitemslistwidgetbase.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="qgsunitselectionwidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="qgsmapunitscalewidgetbase.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="SimpleAnnDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="GraduatedSymbolDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="DiagramDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyAttTableView.h">
@@ -86,5 +116,16 @@
     <ClInclude Include="treeitem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="SimpleAnnDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="GraduatedSymbolDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="DiagramDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

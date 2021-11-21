@@ -9,6 +9,16 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 {
 
 	ui.setupUi(this);
+	this->show();
+
+	this->m_SimpleAnnDialog = new SimpleAnnDialog;
+	connect(m_SimpleAnnDialog, SIGNAL(sendData(QVector<QString>)), this, SLOT(receiveData(QVector<QString>)));
+
+	this->m_GraduatedSymbolDialog = new GraduatedSymbolDialog;
+	connect(m_GraduatedSymbolDialog, SIGNAL(sendData(QVector<QString>)), this, SLOT(receiveData2(QVector<QString>)));
+
+	this->m_DiagramDialog = new DiagramDialog;
+	connect(m_DiagramDialog, SIGNAL(sendData(QVector<QString>)), this, SLOT(receiveData3(QVector<QString>)));
 
 	mapCanvas = new QgsMapCanvas;
 
@@ -107,6 +117,21 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 
 	m = new QMenu(QStringLiteral("地图制图"));
 	m->addAction(QStringLiteral("添加要素"), this, &SimpleGIS::FeatureEdit);
+	m->addSeparator();
+	m->addAction(QStringLiteral("设置简单注记参数"), this, &SimpleGIS::setSimpleAnnPara);
+	m->addAction(QStringLiteral("简单注记"), this, &SimpleGIS::SimpleAnn);
+	m->addAction(QStringLiteral("注记配置"), this, &SimpleGIS::AnnSetting);
+	m->addSeparator();
+	m->addAction(QStringLiteral("单一符号渲染"), this, &SimpleGIS::SingleSymbol);
+	m->addAction(QStringLiteral("分类符号渲染"), this, &SimpleGIS::CategorizedSymbol);
+	m->addAction(QStringLiteral("设置分级符号渲染参数"), this, &SimpleGIS::setGraduatedSymbolPara);
+	m->addAction(QStringLiteral("分级符号渲染"), this, &SimpleGIS::GraduatedSymbol);
+	m->addSeparator();
+	m->addAction(QStringLiteral("设置图形渲染参数"), this, &SimpleGIS::setDiagramPara);
+	m->addAction(QStringLiteral("比例饼图"), this, &SimpleGIS::PieDiagram);
+	m->addAction(QStringLiteral("比例文本图"), this, &SimpleGIS::TextDiagram);
+	m->addAction(QStringLiteral("比例直方图"), this, &SimpleGIS::HistogramDiagram);
+	m->addAction(QStringLiteral("比例累积图"), this, &SimpleGIS::StackBarDiagram);
 	ui.menuBar->addMenu(m);
 
 
@@ -115,11 +140,19 @@ SimpleGIS::SimpleGIS(QWidget* parent)
 	m->addAction(QStringLiteral("GPS数据目录"), this, &SimpleGIS::GPSCatalog);
 	ui.menuBar->addMenu(m);
 
-
 	m = new QMenu(QStringLiteral("帮助"));
 	m->addAction(QStringLiteral("查看帮助"), this, &SimpleGIS::Help);
 	ui.menuBar->addMenu(m);
+}
 
+SimpleGIS::~SimpleGIS()
+{
+	delete m_tv;
+	delete m_tfm;
+	delete mapCanvas;
+	delete mapProject;
+	delete m_treeView;
+	delete m_treeModel;
 }
 
 void SimpleGIS::addVectorLayer()
@@ -753,8 +786,351 @@ void SimpleGIS::AddFeature(const QgsFeature& f)
 	//layer->commitChanges(false);
 }
 
+void SimpleGIS::setSimpleAnnPara()
+{
+	m_SimpleAnnDialog->show();
+}
+
+#include <qgspallabeling.h>
+#include <qgsvectorlayerlabeling.h>
+void SimpleGIS::SimpleAnn()
+{
+	QgsPalLayerSettings layerSettings;
+	layerSettings.drawLabels = true;
+	layerSettings.fieldName = m_SimpleAnnPara.isEmpty() ? "NAME" : m_SimpleAnnPara[0];
+	layerSettings.isExpression = false;
+	layerSettings.placement = QgsPalLayerSettings::OverPoint;
+	layerSettings.yOffset = 2.50;
+
+	QgsTextBufferSettings buffersettings;
+	buffersettings.setEnabled(true);
+	buffersettings.setSize(1);
+	if (m_SimpleAnnPara.isEmpty()) {
+		buffersettings.setColor(QColor(100, 100, 0));
+	}
+	else {
+		buffersettings.setColor(QColor(m_SimpleAnnPara[1].toInt(), m_SimpleAnnPara[2].toInt(), m_SimpleAnnPara[3].toInt()));
+	}
+
+	QgsTextFormat format;
+	QFont font(m_SimpleAnnPara.isEmpty() ? "SimSun" : m_SimpleAnnPara[4], 5, 5, false);
+	font.setUnderline(false);
+	format.setFont(font);
+	format.setBuffer(buffersettings);
+	layerSettings.setFormat(format);
+
+	QgsVectorLayerSimpleLabeling* labeling = new QgsVectorLayerSimpleLabeling(layerSettings);
+	QgsVectorLayer* layer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+	layer->setLabeling(labeling);
+	layer->setLabelsEnabled(true);
+
+	mapCanvas->refresh();
+}
+
+#include <qgslabelinggui.h>
+void SimpleGIS::AnnSetting()
+{
+	QgsPalLayerSettings layerSettings;
+	layerSettings.drawLabels = true;
+	layerSettings.fieldName = "NAME";
+	layerSettings.isExpression = false;
+	layerSettings.placement = QgsPalLayerSettings::OverPoint;
+	layerSettings.yOffset = 2.50;
+
+	QgsTextBufferSettings buffersettings;
+	buffersettings.setEnabled(true);
+	buffersettings.setSize(1);
+	buffersettings.setColor(QColor(100, 100, 0));
+
+	QgsTextFormat format;
+	QFont font("SimSun", 5, 5, false);
+	font.setUnderline(false);
+	format.setFont(font);
+	format.setBuffer(buffersettings);
+	layerSettings.setFormat(format);
+
+	QgsVectorLayer* layer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+
+	QgsLabelSettingsDialog dlg(QgsPalLayerSettings(), layer, mapCanvas, this, QgsWkbTypes::PolygonGeometry);
+	int ret = dlg.exec();
+	if (ret == QDialog::Accepted)
+	{
+		QgsVectorLayerSimpleLabeling* labeling = new QgsVectorLayerSimpleLabeling(dlg.settings());
+
+		layer->setLabeling(labeling);
+		layer->setLabelsEnabled(true);
+
+		mapCanvas->refresh();
+	}
+}
+
+#include <QgsMarkerSymbolLayer.h>
+#include <QgsSingleSymbolRenderer.h>
+void SimpleGIS::SingleSymbol()
+{
+	QgsVectorLayer* vectorLayer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+	// 创建 svgMarkerSymbolLayer
+	QgsSvgMarkerSymbolLayer* svgMarker = new QgsSvgMarkerSymbolLayer(":/icons/github.svg");
+
+	QgsSymbolLayerList symList;
+	symList.append(svgMarker);
+
+	QgsMarkerSymbol* markSym = new QgsMarkerSymbol(symList);
+
+	QgsSingleSymbolRenderer* symRenderer = new QgsSingleSymbolRenderer(markSym);
+
+	//svgMarker->setSize(10);
+
+	vectorLayer->setRenderer(symRenderer);
+	vectorLayer->triggerRepaint();
+}
+
+#include <QgsCategorizedSymbolRenderer.h>
+void SimpleGIS::CategorizedSymbol()
+{
+	QgsVectorLayer* vectorLayer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+
+	//QgsSimpleMarkerSymbolLayer
+	QgsStringMap props;
+	props["name"] = "star"; props["color"] = "red"; props["size"] = "4.0";
+	QgsMarkerSymbol* symbolStar = QgsMarkerSymbol::createSimple(props);
+	props["name"] = "circle"; props["color"] = "gray"; props["size"] = "2.0";
+	QgsMarkerSymbol* symbolProv = QgsMarkerSymbol::createSimple(props);
+	props["name"] = "pentagon"; props["color"] = "blue"; props["size"] = "2.0";
+	QgsMarkerSymbol* symbolSpec = QgsMarkerSymbol::createSimple(props);
+
+	QgsCategorizedSymbolRenderer* symRenderer = new QgsCategorizedSymbolRenderer("ADCLASS");
+	symRenderer->addCategory(QgsRendererCategory(1, symbolStar, QStringLiteral("首都")));
+	symRenderer->addCategory(QgsRendererCategory(2, symbolProv, QStringLiteral("省会")));
+	symRenderer->addCategory(QgsRendererCategory(9, symbolSpec, QStringLiteral("特别行政区")));
+	vectorLayer->setRenderer(symRenderer);
+	vectorLayer->triggerRepaint();
+}
+
+void SimpleGIS::setGraduatedSymbolPara()
+{
+	m_GraduatedSymbolDialog->show();
+}
+
+#include <QgsGraduatedSymbolRenderer.h>
+#include <QgsColorRamp.h>
+#include <QgsClassificationMethodRegistry.h>
+void SimpleGIS::GraduatedSymbol()
+{
+	QgsVectorLayer* vectorLayer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+
+	QgsGraduatedSymbolRenderer* symRenderer = new QgsGraduatedSymbolRenderer(m_GraduatedSymbolPara.isEmpty() ? "POPU" : m_GraduatedSymbolPara[0]);
+
+	QgsStringMap props;
+	props["style"] = "solid";
+	symRenderer->setSourceSymbol(QgsFillSymbol::createSimple(props));
+	if (m_GraduatedSymbolPara.isEmpty()) {
+		symRenderer->setSourceColorRamp(new QgsGradientColorRamp(QColor(255, 255, 255), QColor(255, 0, 0)));
+	}
+	else {
+		symRenderer->setSourceColorRamp(new QgsGradientColorRamp(QColor(255, 255, 255), QColor(m_GraduatedSymbolPara[1].toInt(), m_GraduatedSymbolPara[2].toInt(), m_GraduatedSymbolPara[3].toInt())));
+	}
+	symRenderer->setClassificationMethod(QgsApplication::classificationMethodRegistry()->method("Pretty"));
+	symRenderer->updateClasses(vectorLayer, 5);
+	vectorLayer->setRenderer(symRenderer);
+	vectorLayer->triggerRepaint();
+}
+
+#include <QgsDiagramRenderer.h>
+#include <QgsPieDiagram.h>
+#include <QgsTextDiagram.h>
+#include <QgsHistogramDiagram.h>
+#include <QgsStackedBarDiagram.h>
+void SimpleGIS::Diagram(QgsDiagram* diagram, bool isSingle)
+{
+	QgsVectorLayer* vectorLayer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+
+	QgsDiagramSettings ds;
+	QColor col1;
+	QColor col2;
+	if (m_DiagramPara.isEmpty()) {
+		col1 = Qt::green;
+		col2 = Qt::red;
+	}
+	else {
+		col1 = QColor(m_DiagramPara[1].toInt(), m_DiagramPara[2].toInt(), m_DiagramPara[3].toInt());
+		col2 = QColor(m_DiagramPara[5].toInt(), m_DiagramPara[6].toInt(), m_DiagramPara[7].toInt());
+	}
+	col1.setAlphaF(0.5);
+	col2.setAlphaF(0.5);
+	ds.categoryColors = QList<QColor>() << col1 << col2;
+	if (m_DiagramPara.isEmpty()) {
+		ds.categoryAttributes = QList<QString>() << "Pop_Rural" << "Pop_Urban";
+	}
+	else {
+		ds.categoryAttributes = QList<QString>() << m_DiagramPara[0] << m_DiagramPara[4];
+	}
+	ds.minimumSize = 0;
+	ds.penColor = Qt::gray;
+	ds.penWidth = .5;
+	ds.scaleByArea = true;
+	ds.sizeType = QgsUnitTypes::RenderMillimeters;
+	ds.size = QSizeF(5, 5);
+	ds.backgroundColor = QColor(255, 255, 255);
+
+	QgsDiagramRenderer* renderer;
+	if (isSingle)
+	{
+		QgsSingleCategoryDiagramRenderer* renderer0 = new QgsSingleCategoryDiagramRenderer();
+		renderer0->setDiagramSettings(ds);
+		renderer = renderer0;
+	}
+	else
+	{
+		QgsLinearlyInterpolatedDiagramRenderer* renderer0 = new QgsLinearlyInterpolatedDiagramRenderer();
+		renderer0->setClassificationField("POPU");
+		renderer0->setLowerValue(0.0);
+		renderer0->setLowerSize(QSizeF(0.0, 0.0));
+		renderer0->setUpperValue(10000);
+		renderer0->setUpperSize(QSizeF(10, 10));
+		renderer0->setDiagramSettings(ds);
+		renderer = renderer0;
+	}
+
+	renderer->setDiagram(diagram);
+
+	QgsDiagramLayerSettings dls = QgsDiagramLayerSettings();
+	dls.setPlacement(QgsDiagramLayerSettings::OverPoint);
+	dls.setShowAllDiagrams(true);
+
+	vectorLayer->setDiagramRenderer(renderer);
+	vectorLayer->setDiagramLayerSettings(dls);
+	vectorLayer->triggerRepaint();
+}
+
+void SimpleGIS::setDiagramPara()
+{
+	m_DiagramDialog->show();
+}
+
+void SimpleGIS::PieDiagram()
+{
+	QgsVectorLayer* vectorLayer = (QgsVectorLayer*)(mapCanvas->layers()[0]);
+
+	QgsDiagramSettings ds;
+	QColor col1;
+	QColor col2;
+	if (m_DiagramPara.isEmpty()) {
+		col1 = Qt::green;
+		col2 = Qt::red;
+	}
+	else {
+		col1 = QColor(m_DiagramPara[1].toInt(), m_DiagramPara[2].toInt(), m_DiagramPara[3].toInt());
+		col2 = QColor(m_DiagramPara[5].toInt(), m_DiagramPara[6].toInt(), m_DiagramPara[7].toInt());
+	}
+	col1.setAlphaF(0.5);
+	col2.setAlphaF(0.5);
+	ds.categoryColors = QList<QColor>() << col1 << col2;
+	if (m_DiagramPara.isEmpty()) {
+		ds.categoryAttributes = QList<QString>() << "Pop_Rural" << "Pop_Urban";
+	}
+	else {
+		ds.categoryAttributes = QList<QString>() << m_DiagramPara[0] << m_DiagramPara[4];
+	}
+	ds.minimumSize = 0;
+	ds.penColor = Qt::gray;
+	ds.penWidth = .5;
+	ds.scaleByArea = true;
+	ds.sizeType = QgsUnitTypes::RenderMillimeters;
+	ds.size = QSizeF(5, 5);
+	ds.backgroundColor = QColor(255, 255, 255);
+
+	QgsSingleCategoryDiagramRenderer* renderer = new QgsSingleCategoryDiagramRenderer();
+
+	/*QgsLinearlyInterpolatedDiagramRenderer *renderer = new QgsLinearlyInterpolatedDiagramRenderer();
+	renderer->setClassificationField("POPU");
+	renderer->setLowerValue(0.0);
+	renderer->setLowerSize(QSizeF(0.0, 0.0));
+	renderer->setUpperValue(10000);
+	renderer->setUpperSize(QSizeF(10, 10));*/
+	renderer->setDiagram(new QgsPieDiagram());
+	//renderer->setDiagram(new QgsTextDiagram());
+	//renderer->setDiagram(new QgsHistogramDiagram());
+	//renderer->setDiagram(new QgsStackedBarDiagram());
+	renderer->setDiagramSettings(ds);
+
+	QgsDiagramLayerSettings dls = QgsDiagramLayerSettings();
+	dls.setPlacement(QgsDiagramLayerSettings::OverPoint);
+	dls.setShowAllDiagrams(true);
+
+	vectorLayer->setDiagramRenderer(renderer);
+	vectorLayer->setDiagramLayerSettings(dls);
+	vectorLayer->triggerRepaint();
+}
+
+void SimpleGIS::TextDiagram()
+{
+	Diagram(new QgsTextDiagram(), true);
+}
+
+void SimpleGIS::HistogramDiagram()
+{
+	Diagram(new QgsHistogramDiagram(), true);
+}
+
+void SimpleGIS::StackBarDiagram()
+{
+	Diagram(new QgsStackedBarDiagram(), true);
+}
+
+void SimpleGIS::PieDiagram2()
+{
+	Diagram(new QgsPieDiagram(), false);
+}
+
+void SimpleGIS::TextDiagram2()
+{
+	Diagram(new QgsTextDiagram(), false);
+}
+
+void SimpleGIS::HistogramDiagram2()
+{
+	Diagram(new QgsHistogramDiagram(), false);
+}
+
+void SimpleGIS::StackBarDiagram2()
+{
+	Diagram(new QgsStackedBarDiagram(), false);
+}
+
 #include <QDesktopServices.h>
 void SimpleGIS::Help()
 {
 	QDesktopServices::openUrl(QUrl("https://www.osgeo.cn/qgisdoc/docs/#"));
+}
+
+void SimpleGIS::receiveData(QVector<QString> data) {
+	this->m_SimpleAnnPara.clear();
+	this->m_SimpleAnnPara.push_back(data[0]);
+	this->m_SimpleAnnPara.push_back(data[1]);
+	this->m_SimpleAnnPara.push_back(data[2]);
+	this->m_SimpleAnnPara.push_back(data[3]);
+	this->m_SimpleAnnPara.push_back(data[4]);
+}
+
+void SimpleGIS::receiveData2(QVector<QString> data)
+{
+	this->m_GraduatedSymbolPara.clear();
+	this->m_GraduatedSymbolPara.push_back(data[0]);
+	this->m_GraduatedSymbolPara.push_back(data[1]);
+	this->m_GraduatedSymbolPara.push_back(data[2]);
+	this->m_GraduatedSymbolPara.push_back(data[3]);
+}
+
+void SimpleGIS::receiveData3(QVector<QString> data)
+{
+	this->m_DiagramPara.clear();
+	this->m_DiagramPara.push_back(data[0]);
+	this->m_DiagramPara.push_back(data[1]);
+	this->m_DiagramPara.push_back(data[2]);
+	this->m_DiagramPara.push_back(data[3]);
+	this->m_DiagramPara.push_back(data[4]);
+	this->m_DiagramPara.push_back(data[5]);
+	this->m_DiagramPara.push_back(data[6]);
+	this->m_DiagramPara.push_back(data[7]);
 }
